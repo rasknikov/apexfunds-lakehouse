@@ -11,6 +11,15 @@ Este diretório consolida a documentação base do projeto `apex-lakehouse`, der
 - [`roadmap.md`](./roadmap.md): visão consolidada do roadmap e dos níveis de maturidade.
 - [`roadmap/`](./roadmap/README.md): detalhamento do roadmap em níveis sequenciais.
 
+## Materializado na Fase 0
+
+- `pyproject.toml` com build, `pytest`, `ruff` e `mypy`;
+- `.env.example` para sandbox local;
+- `docker-compose.yml` com serviços core e perfis para topologia completa;
+- pacote Python compartilhado em `src/apex_lakehouse`;
+- `FastAPI` de smoke em `api/app/main.py`;
+- `Makefile`, `.pre-commit-config.yaml` e script de inspeção de config.
+
 ## Expansões adicionadas além do blueprint
 
 O blueprint cobre bem a visão de produto e o desenho medallion, mas um projeto sênior em produção precisa também de:

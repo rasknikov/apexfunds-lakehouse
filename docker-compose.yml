@@ -1,0 +1,193 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: apex-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${APEX_POSTGRES_DB:-apex_lakehouse}
+      POSTGRES_USER: ${APEX_POSTGRES_USER:-apex}
+      POSTGRES_PASSWORD: ${APEX_POSTGRES_PASSWORD:-apex}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${APEX_POSTGRES_USER:-apex} -d ${APEX_POSTGRES_DB:-apex_lakehouse}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: apex-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${APEX_MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${APEX_MINIO_SECRET_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    container_name: apex-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 ${APEX_MINIO_ACCESS_KEY:-minioadmin} ${APEX_MINIO_SECRET_KEY:-minioadmin}; do sleep 2; done &&
+      mc mb --ignore-existing local/${APEX_MINIO_RAW_BUCKET:-raw} &&
+      mc mb --ignore-existing local/${APEX_MINIO_LAKEHOUSE_BUCKET:-lakehouse} &&
+      mc mb --ignore-existing local/${APEX_MINIO_ARTIFACTS_BUCKET:-artifacts}
+      "
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: apex-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APEX_POSTGRES_HOST: postgres
+      APEX_MINIO_ENDPOINT: http://minio:9000
+      APEX_TRINO_HOST: trino
+      APEX_SPARK_MASTER_URL: spark://spark-master:7077
+    depends_on:
+      - postgres
+      - minio
+    ports:
+      - "8000:8000"
+
+  spark-master:
+    image: bitnami/spark:3.5
+    container_name: apex-spark-master
+    profiles: ["compute"]
+    environment:
+      SPARK_MODE: master
+      SPARK_MASTER_PORT_NUMBER: 7077
+      SPARK_MASTER_WEBUI_PORT_NUMBER: 8080
+    ports:
+      - "7077:7077"
+      - "8082:8080"
+
+  spark-worker:
+    image: bitnami/spark:3.5
+    container_name: apex-spark-worker
+    profiles: ["compute"]
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_WEBUI_PORT_NUMBER: 8081
+    ports:
+      - "8083:8081"
+
+  trino:
+    image: trinodb/trino:455
+    container_name: apex-trino
+    profiles: ["compute"]
+    depends_on:
+      - minio
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./deploy/local/trino/etc:/etc/trino
+
+  airflow-init:
+    image: apache/airflow:2.10.2-python3.12
+    container_name: apex-airflow-init
+    profiles: ["orchestration"]
+    env_file:
+      - .env
+    environment: &airflow-env
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${APEX_POSTGRES_USER:-apex}:${APEX_POSTGRES_PASSWORD:-apex}@postgres:5432/${APEX_POSTGRES_DB:-apex_lakehouse}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW_UID: ${AIRFLOW_UID:-50000}
+    depends_on:
+      - postgres
+    entrypoint: /bin/bash
+    command: >
+      -c "
+      airflow db migrate &&
+      airflow users create
+      --username ${AIRFLOW_WEB_USER:-admin}
+      --password ${AIRFLOW_WEB_PASSWORD:-admin}
+      --firstname Apex
+      --lastname Admin
+      --role Admin
+      --email admin@example.com
+      "
+    volumes:
+      - ./orchestration/dags:/opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+
+  airflow-webserver:
+    image: apache/airflow:2.10.2-python3.12
+    container_name: apex-airflow-webserver
+    profiles: ["orchestration"]
+    env_file:
+      - .env
+    environment: *airflow-env
+    depends_on:
+      - postgres
+      - airflow-init
+    command: webserver
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./orchestration/dags:/opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+
+  airflow-scheduler:
+    image: apache/airflow:2.10.2-python3.12
+    container_name: apex-airflow-scheduler
+    profiles: ["orchestration"]
+    env_file:
+      - .env
+    environment: *airflow-env
+    depends_on:
+      - postgres
+      - airflow-init
+    command: scheduler
+    volumes:
+      - ./orchestration/dags:/opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+
+  superset:
+    image: apache/superset:4.1.1
+    container_name: apex-superset
+    profiles: ["bi"]
+    env_file:
+      - .env
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-change-me-in-real-environments}
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      superset db upgrade &&
+      superset fab create-admin
+      --username ${SUPERSET_ADMIN_USERNAME:-admin}
+      --firstname Apex
+      --lastname Admin
+      --email ${SUPERSET_ADMIN_EMAIL:-admin@example.com}
+      --password ${SUPERSET_ADMIN_PASSWORD:-admin} || true &&
+      superset init &&
+      superset run -h 0.0.0.0 -p 8088
+      "
+    depends_on:
+      - postgres
+    ports:
+      - "8088:8088"
+
+volumes:
+  postgres_data:
+  minio_data:
+  airflow_logs:

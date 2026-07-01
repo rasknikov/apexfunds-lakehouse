@@ -7,12 +7,19 @@ ROOT = Path(__file__).resolve().parents[2]
 def test_core_docs_exist() -> None:
     expected_files = [
         "README.md",
+        ".env.example",
+        ".pre-commit-config.yaml",
+        "docker-compose.yml",
+        "Makefile",
+        "pyproject.toml",
+        "api/Dockerfile",
         "docs/README.md",
         "docs/architecture.md",
         "docs/implementation-plan.md",
         "docs/stack.md",
         "docs/spec.md",
         "docs/roadmap.md",
+        "scripts/print_settings.py",
     ]
 
     missing = [path for path in expected_files if not (ROOT / path).is_file()]
@@ -22,6 +29,7 @@ def test_core_docs_exist() -> None:
 def test_required_project_directories_exist() -> None:
     expected_dirs = [
         "api/app",
+        "deploy/local/trino/etc",
         "dashboards/superset",
         "dbt/models/bronze",
         "dbt/models/silver",
@@ -39,6 +47,7 @@ def test_required_project_directories_exist() -> None:
         "quality/contracts",
         "quality/expectations",
         "scripts",
+        "src/apex_lakehouse",
         "tests/unit",
         "tests/integration",
         "tests/e2e",

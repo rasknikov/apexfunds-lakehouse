@@ -4,7 +4,7 @@
 
 ### Transforma dados públicos de fundos no Brasil em produtos de dados confiáveis para analytics, API e governança
 
-[![Open Code](https://img.shields.io/badge/Open--Code-Public%20Replica-111827?logo=github&logoColor=white)](#-open-code-context) [![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/) [![Airflow](https://img.shields.io/badge/Airflow-2.x-017CEE?logo=apacheairflow&logoColor=white)](https://airflow.apache.org/) [![Iceberg](https://img.shields.io/badge/Apache%20Iceberg-1.x-2C6BED?logo=apache&logoColor=white)](https://iceberg.apache.org/) [![Spark](https://img.shields.io/badge/Spark-3.5%2B-E25A1C?logo=apachespark&logoColor=white)](https://spark.apache.org/) [![Trino](https://img.shields.io/badge/Trino-4xx%2B-DD00A1?logo=trino&logoColor=white)](https://trino.io/) [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.30%2B-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Open Code](https://img.shields.io/badge/Open--Code-Public%20Replica-111827?logo=github&logoColor=white)](#-open-code-context) [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/) [![Airflow](https://img.shields.io/badge/Airflow-2.x-017CEE?logo=apacheairflow&logoColor=white)](https://airflow.apache.org/) [![Iceberg](https://img.shields.io/badge/Apache%20Iceberg-1.x-2C6BED?logo=apache&logoColor=white)](https://iceberg.apache.org/) [![Spark](https://img.shields.io/badge/Spark-3.5%2B-E25A1C?logo=apachespark&logoColor=white)](https://spark.apache.org/) [![Trino](https://img.shields.io/badge/Trino-4xx%2B-DD00A1?logo=trino&logoColor=white)](https://trino.io/) [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.30%2B-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 
 *Unifica CVM, BCB e B3 em um lakehouse production-first com contratos, quality gates, lineage e serving por API e BI.*
 
@@ -131,46 +131,60 @@ flowchart TB
 
 ### Prerequisites
 
+- Docker Desktop or Docker Engine with Compose
+- Python `3.9+`
 - Git
-- Python `3.12+`
-- `pytest` disponível no ambiente
 
-### 1. Enter the Repository
+### 1. Clone and Configure
 
 ```bash
-cd apex-lakehouse
+git clone https://github.com/rasknikov/apexfunds-lakehouse.git
+cd apexfunds-lakehouse
+cp .env.example .env
 ```
 
-### 2. Read the Core Platform Docs
+### 2. Install the Local Toolchain
 
 ```bash
-cat docs/README.md
-cat docs/architecture.md
-cat docs/spec.md
-cat docs/implementation-plan.md
+python -m pip install -e .[api,dev]
 ```
 
-### 3. Validate the Public Scaffold
+### 3. Start the Core Sandbox
 
 ```bash
+docker compose up -d
+```
+
+This launches:
+
+| Service | Port | Purpose |
+|---|---|---|
+| `postgres` | `5432` | Control-plane metadata and local operational state |
+| `minio` | `9000` / `9001` | Object storage for `raw`, `lakehouse` and artifacts |
+| `api` | `8000` | Sandbox FastAPI entrypoint and health check |
+
+### 4. Validate the Sandbox
+
+```bash
+curl http://localhost:8000/health
 python -m pytest tests/ -v
 ```
 
-This validates:
-
-| Check | Purpose |
-|---|---|
-| Core docs | Confirma que arquitetura, stack, spec e roadmap existem no repositório |
-| Repository scaffold | Confirma que os diretórios estruturais da plataforma já estão materializados |
-| Git hygiene | Confirma que `.local/` e padrões sensíveis estão protegidos no `.gitignore` |
-
-### 4. Review the Delivery Path
+### 5. Start the Full Platform Topology
 
 ```bash
-cat docs/roadmap.md
-cat docs/roadmap/level-1-foundation.md
-cat docs/roadmap/level-2-analytics.md
+docker compose --profile compute --profile orchestration --profile bi up -d
 ```
+
+Additional services:
+
+| Service | Port | Purpose |
+|---|---|---|
+| `airflow-webserver` | `8080` | Orchestration UI and DAG control plane |
+| `trino` | `8081` | Interactive query engine for curated datasets |
+| `spark-master` | `7077`, `8082` | Batch compute entrypoint |
+| `spark-worker` | `8083` | Local worker for Spark jobs |
+| `superset` | `8088` | BI and operational dashboards |
 
 ---
 
@@ -179,7 +193,12 @@ cat docs/roadmap/level-2-analytics.md
 `.local/` fica propositalmente fora da árvore pública do Git. Ela guarda blueprint, metodologia e notas locais de trabalho e está ignorada pelo repositório.
 
 ```text
-apex-lakehouse/
+apexfunds-lakehouse/
+├── .env.example                       # 🔐 Environment template for local sandbox
+├── .pre-commit-config.yaml            # 🪝 Local quality gates before commit
+├── docker-compose.yml                 # 🐳 Local platform topology and service wiring
+├── pyproject.toml                     # 📦 Python packaging, tooling and test config
+├── Makefile                           # ⚙️ Common local commands
 ├── README.md                          # 🧭 README público do projeto e quick start
 ├── docs/                              # 📚 Arquitetura, stack, spec, plan e roadmap
 │   ├── architecture.md                #   Lakehouse production-first e topologia-alvo
@@ -188,6 +207,9 @@ apex-lakehouse/
 │   ├── spec.md                        #   Contratos, requisitos e critérios de aceite
 │   ├── roadmap.md                     #   Visão consolidada da evolução
 │   └── roadmap/                       #   Roadmap detalhado por nível de maturidade
+│
+├── src/                               # 🧩 Shared Python package for platform config
+│   └── apex_lakehouse/                #   Environment-aware settings and common code
 │
 ├── orchestration/                     # ⏱️ Orquestração e scheduling
 │   └── dags/                          #   DAGs do Airflow e fluxos batch
@@ -209,6 +231,7 @@ apex-lakehouse/
 │   └── contracts/                     #   Contratos de schema, grain e SLO
 │
 ├── api/                               # 🌐 Serving layer
+│   ├── Dockerfile                     #   Local API image for sandbox startup
 │   └── app/                           #   FastAPI, routers e views curadas
 │
 ├── dashboards/                        # 📈 Consumo visual
@@ -226,9 +249,12 @@ apex-lakehouse/
 │   └── terraform/                     #   Provisionamento de ambientes
 │
 ├── deploy/                            # 🚀 Empacotamento e deployment
-│   └── helm/                          #   Charts e manifestos de entrega
+│   ├── helm/                          #   Charts e manifestos de entrega
+│   └── local/                         #   Configs locais da sandbox platform
 │
 ├── scripts/                           # 🔧 Automação operacional do workspace
+│   └── print_settings.py              #   Exibe config carregada com segredos mascarados
+│
 └── tests/                             # 🧪 Testes do repositório e da plataforma
     ├── unit/                          #   Testes de lógica e scaffold
     ├── integration/                   #   Testes de integração entre camadas
@@ -253,7 +279,7 @@ apex-lakehouse/
 ```bash
 python -m pytest tests/ -v
 
-# Current: 3/3 passing ✅
+# Current: 5/5 passing ✅
 ```
 
 ---
