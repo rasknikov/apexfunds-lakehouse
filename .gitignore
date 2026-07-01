@@ -47,7 +47,7 @@ temp/
 # Local runtime data
 data/
 artifacts/
-storage/
+/storage/
 volumes/
 raw/
 lakehouse/
@@ -61,4 +61,3 @@ dbt/logs/
 .terraform/
 *.tfstate
 *.tfstate.*
-
