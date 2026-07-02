@@ -212,6 +212,25 @@ def test_get_ingestion_state_returns_none_when_missing() -> None:
     assert result is None
 
 
+def test_get_source_files_by_urls_returns_mapped_rows() -> None:
+    repository, session = _build_repository_with_session()
+    row = {
+        "source_url": "https://dados.cvm.gov.br/dados/FI/CAD/DADOS/cad_fi.csv",
+        "file_name": "cad_fi.csv",
+        "status": "ingested",
+    }
+    result_proxy = MagicMock()
+    result_proxy.mappings.return_value.all.return_value = [row]
+    session.execute.return_value = result_proxy
+
+    result = repository.get_source_files_by_urls(
+        source_system="cvm",
+        source_urls=["https://dados.cvm.gov.br/dados/FI/CAD/DADOS/cad_fi.csv"],
+    )
+
+    assert result == [row]
+
+
 def test_mark_pipeline_run_finished_updates_terminal_fields() -> None:
     repository, session = _build_repository_with_session()
     run_id = uuid4()

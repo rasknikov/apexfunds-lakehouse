@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from contextlib import contextmanager
 from dataclasses import asdict
-from typing import Generator
+from typing import Generator, Sequence
 from uuid import UUID
 
 from sqlalchemy import create_engine, text
@@ -405,6 +405,42 @@ class ControlPlaneRepository:
                 },
             ).mappings().first()
             return dict(row) if row else None
+
+    def get_source_files_by_urls(
+        self,
+        *,
+        source_system: str,
+        source_urls: Sequence[str],
+    ) -> list[dict[str, object]]:
+        if not source_urls:
+            return []
+
+        statement = text(
+            """
+            select
+                source_file_id,
+                source_system,
+                dataset_name,
+                source_url,
+                file_name,
+                file_hash,
+                status,
+                source_last_modified_at
+            from ops.source_file_registry
+            where source_system = :source_system
+              and source_url = any(:source_urls)
+            """
+        )
+
+        with self.session() as session:
+            rows = session.execute(
+                statement,
+                {
+                    "source_system": source_system,
+                    "source_urls": list(source_urls),
+                },
+            ).mappings().all()
+            return [dict(row) for row in rows]
 
     def mark_pipeline_run_finished(
         self,
