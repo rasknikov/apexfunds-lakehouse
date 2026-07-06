@@ -131,6 +131,7 @@ def _required_field_rule(
         return QualityRuleOutcome(
             row_count_evaluated=len(rows),
             row_count_failed=len(failures),
+            failed_payloads=failures,
             sample_failures=failures[:MAX_SAMPLE_FAILURES],
             details={"field_name": field_name},
         )
@@ -171,6 +172,7 @@ def _decimal_greater_than_rule(
         return QualityRuleOutcome(
             row_count_evaluated=len(rows),
             row_count_failed=len(failures),
+            failed_payloads=failures,
             sample_failures=failures[:MAX_SAMPLE_FAILURES],
             details={"field_name": field_name, "minimum": minimum},
         )
@@ -211,6 +213,7 @@ def _decimal_greater_or_equal_rule(
         return QualityRuleOutcome(
             row_count_evaluated=len(rows),
             row_count_failed=len(failures),
+            failed_payloads=failures,
             sample_failures=failures[:MAX_SAMPLE_FAILURES],
             details={"field_name": field_name, "minimum": minimum},
         )
@@ -245,6 +248,7 @@ def _unique_fields_rule(
         return QualityRuleOutcome(
             row_count_evaluated=len(rows),
             row_count_failed=len(failures),
+            failed_payloads=failures,
             sample_failures=failures[:MAX_SAMPLE_FAILURES],
             details={"field_names": list(field_names)},
         )

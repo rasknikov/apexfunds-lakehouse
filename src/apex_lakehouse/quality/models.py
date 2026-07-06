@@ -28,6 +28,7 @@ class QualityRuleDefinition:
 class QualityRuleOutcome:
     row_count_evaluated: int
     row_count_failed: int
+    failed_payloads: list[dict[str, str]] = field(default_factory=list)
     sample_failures: list[dict[str, str]] = field(default_factory=list)
     details: JsonDict = field(default_factory=dict)
 
@@ -60,4 +61,5 @@ class DatasetQualityEvaluation:
     local_dataset_path: Path
     records: list[DataQualityResultRecord]
     gate: PromotionGateDecision
+    rule_outcomes: dict[str, QualityRuleOutcome] = field(default_factory=dict)
     details: JsonDict = field(default_factory=dict)

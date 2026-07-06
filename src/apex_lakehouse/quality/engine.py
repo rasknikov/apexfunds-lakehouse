@@ -28,9 +28,11 @@ class DatasetQualityEngine:
         rows = _read_csv_rows(local_dataset_path)
         rules = get_silver_quality_rules(request.dataset_name)
         records: list[DataQualityResultRecord] = []
+        rule_outcomes = {}
 
         for rule in rules:
             outcome = rule.evaluator(rows)
+            rule_outcomes[rule.rule_code] = outcome
             status = (
                 QualityCheckStatus.FAILED
                 if outcome.row_count_failed > 0
@@ -70,6 +72,7 @@ class DatasetQualityEngine:
             local_dataset_path=local_dataset_path.resolve(),
             records=records,
             gate=gate,
+            rule_outcomes=rule_outcomes,
             details=details,
         )
 

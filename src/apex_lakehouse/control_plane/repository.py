@@ -338,6 +338,36 @@ class ControlPlaneRepository:
         with self.session() as session:
             session.execute(statement, payload)
 
+    def update_quarantine_status(
+        self,
+        quarantine_id: UUID,
+        *,
+        quarantine_status: str,
+        resolved_at=None,
+        resolution_note: str | None = None,
+    ) -> None:
+        statement = text(
+            """
+            update quarantine.base_records
+            set
+                quarantine_status = :quarantine_status,
+                resolved_at = :resolved_at,
+                resolution_note = :resolution_note
+            where quarantine_id = :quarantine_id
+            """
+        )
+
+        with self.session() as session:
+            session.execute(
+                statement,
+                {
+                    "quarantine_id": str(quarantine_id),
+                    "quarantine_status": quarantine_status,
+                    "resolved_at": resolved_at,
+                    "resolution_note": resolution_note,
+                },
+            )
+
     def get_latest_pipeline_run(
         self,
         pipeline_name: str,

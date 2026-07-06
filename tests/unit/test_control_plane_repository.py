@@ -186,6 +186,25 @@ def test_insert_quarantine_record_serializes_status_and_payload() -> None:
     assert payload["payload_json"] == '{"cnpj_fundo": "123"}'
 
 
+def test_update_quarantine_status_serializes_status_and_resolution_fields() -> None:
+    repository, session = _build_repository_with_session()
+    quarantine_id = uuid4()
+    resolved_at = datetime(2024, 1, 15, 13, 0, 0)
+
+    repository.update_quarantine_status(
+        quarantine_id,
+        quarantine_status=QuarantineStatus.RESOLVED.value,
+        resolved_at=resolved_at,
+        resolution_note="Manually replayed",
+    )
+
+    _, payload = session.execute.call_args[0]
+    assert payload["quarantine_id"] == str(quarantine_id)
+    assert payload["quarantine_status"] == "resolved"
+    assert payload["resolved_at"] == resolved_at
+    assert payload["resolution_note"] == "Manually replayed"
+
+
 def test_get_latest_pipeline_run_returns_mapping_as_dict() -> None:
     repository, session = _build_repository_with_session()
     row = {
