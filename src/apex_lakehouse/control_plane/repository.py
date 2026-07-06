@@ -519,6 +519,63 @@ class ControlPlaneRepository:
             ).mappings().all()
             return [dict(row) for row in rows]
 
+    def list_source_files(
+        self,
+        *,
+        source_system: str,
+        dataset_names: Sequence[str] | None = None,
+        status: str | None = None,
+        competence: str | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, object]]:
+        conditions = ["source_system = :source_system"]
+        payload: dict[str, object] = {
+            "source_system": source_system,
+            "limit": limit,
+        }
+        if dataset_names:
+            conditions.append("dataset_name = any(:dataset_names)")
+            payload["dataset_names"] = list(dataset_names)
+        if status is not None:
+            conditions.append("status = :status")
+            payload["status"] = status
+        if competence is not None:
+            conditions.append("competence = :competence")
+            payload["competence"] = competence
+
+        statement = text(
+            f"""
+            select
+                source_file_id,
+                source_system,
+                dataset_name,
+                source_url,
+                file_name,
+                storage_bucket,
+                storage_key,
+                competence,
+                business_date,
+                content_type,
+                file_hash,
+                file_size_bytes,
+                source_last_modified_at,
+                first_seen_at,
+                last_seen_at,
+                first_ingested_at,
+                latest_ingested_at,
+                status,
+                last_pipeline_run_id
+            from ops.source_file_registry
+            where {' and '.join(conditions)}
+            order by coalesce(latest_ingested_at, last_seen_at) desc
+            limit :limit
+            """
+        )
+
+        with self.session() as session:
+            rows = session.execute(statement, payload).mappings().all()
+            return [dict(row) for row in rows]
+
     def list_latest_quality_results(
         self,
         *,
