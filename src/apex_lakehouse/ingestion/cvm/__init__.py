@@ -30,6 +30,19 @@ from apex_lakehouse.ingestion.cvm.raw_ingestion_workflow import (
     CvmRawIngestionWorkflow,
     CvmRawWorkflowResult,
 )
+from apex_lakehouse.ingestion.cvm.gold_models import (
+    GoldColumnSchema,
+    GoldDatasetResult,
+    GoldDatasetSummary,
+    GoldMartBuildRequest,
+    GoldMartBuildResult,
+)
+from apex_lakehouse.ingestion.cvm.gold_service import CvmGoldService
+from apex_lakehouse.ingestion.cvm.gold_transformer import (
+    CvmGoldTransformer,
+    GoldMartTransformRequest,
+)
+from apex_lakehouse.ingestion.cvm.gold_workflow import CvmGoldBatch, CvmGoldWorkflow
 from apex_lakehouse.ingestion.cvm.silver_models import (
     SilverBuildRequest,
     SilverBuildResult,
@@ -55,6 +68,10 @@ __all__ = [
     "CvmDataset",
     "CvmDiscoveryCandidate",
     "CvmDiscoveryResult",
+    "CvmGoldBatch",
+    "CvmGoldService",
+    "CvmGoldTransformer",
+    "CvmGoldWorkflow",
     "CvmRawDownloader",
     "CvmRawIngestionService",
     "CvmRawIngestionWorkflow",
@@ -67,6 +84,12 @@ __all__ = [
     "DiscoveryDecision",
     "DownloadRequest",
     "DownloadedFile",
+    "GoldColumnSchema",
+    "GoldDatasetResult",
+    "GoldDatasetSummary",
+    "GoldMartBuildRequest",
+    "GoldMartBuildResult",
+    "GoldMartTransformRequest",
     "RawIngestionRequest",
     "RawIngestionResult",
     "SilverBuildRequest",
