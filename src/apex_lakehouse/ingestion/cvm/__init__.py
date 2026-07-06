@@ -7,6 +7,15 @@ from apex_lakehouse.ingestion.cvm.discovery_models import (
     CvmSourceArtifact,
     DiscoveryDecision,
 )
+from apex_lakehouse.ingestion.cvm.bronze_models import (
+    BronzeBuildRequest,
+    BronzeBuildResult,
+    BronzeColumnSchema,
+    BronzeParseSummary,
+)
+from apex_lakehouse.ingestion.cvm.bronze_parser import CvmBronzeParser
+from apex_lakehouse.ingestion.cvm.bronze_service import CvmBronzeService
+from apex_lakehouse.ingestion.cvm.bronze_workflow import CvmBronzeBatch, CvmBronzeWorkflow
 from apex_lakehouse.ingestion.cvm.raw_downloader import (
     CvmRawDownloader,
     DownloadedFile,
@@ -23,6 +32,14 @@ from apex_lakehouse.ingestion.cvm.raw_ingestion_workflow import (
 )
 
 __all__ = [
+    "BronzeBuildRequest",
+    "BronzeBuildResult",
+    "BronzeColumnSchema",
+    "BronzeParseSummary",
+    "CvmBronzeBatch",
+    "CvmBronzeParser",
+    "CvmBronzeService",
+    "CvmBronzeWorkflow",
     "CvmDataset",
     "CvmDiscoveryCandidate",
     "CvmDiscoveryResult",
