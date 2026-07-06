@@ -403,6 +403,53 @@ class ControlPlaneRepository:
             row = session.execute(statement, {"pipeline_name": pipeline_name}).mappings().first()
             return dict(row) if row else None
 
+    def list_latest_pipeline_runs(
+        self,
+        *,
+        limit: int = 20,
+        pipeline_name: str | None = None,
+    ) -> list[dict[str, object]]:
+        conditions = []
+        payload: dict[str, object] = {"limit": limit}
+        if pipeline_name is not None:
+            conditions.append("pipeline_name = :pipeline_name")
+            payload["pipeline_name"] = pipeline_name
+
+        where_clause = ""
+        if conditions:
+            where_clause = "where " + " and ".join(conditions)
+
+        statement = text(
+            f"""
+            select
+                pipeline_run_id,
+                pipeline_name,
+                source_system,
+                dataset_name,
+                trigger_mode,
+                status,
+                started_at,
+                finished_at,
+                rows_read,
+                rows_written,
+                rows_quarantined,
+                files_discovered,
+                files_processed,
+                files_skipped,
+                error_code,
+                error_message,
+                details_json
+            from ops.pipeline_run_log
+            {where_clause}
+            order by started_at desc
+            limit :limit
+            """
+        )
+
+        with self.session() as session:
+            rows = session.execute(statement, payload).mappings().all()
+            return [dict(row) for row in rows]
+
     def get_ingestion_state(
         self,
         source_system: str,
@@ -471,6 +518,57 @@ class ControlPlaneRepository:
                 },
             ).mappings().all()
             return [dict(row) for row in rows]
+
+    def list_latest_quality_results(
+        self,
+        *,
+        limit: int = 20,
+        dataset_name: str | None = None,
+    ) -> list[dict[str, object]]:
+        conditions = []
+        payload: dict[str, object] = {"limit": limit}
+        if dataset_name is not None:
+            conditions.append("dataset_name = :dataset_name")
+            payload["dataset_name"] = dataset_name
+
+        where_clause = ""
+        if conditions:
+            where_clause = "where " + " and ".join(conditions)
+
+        statement = text(
+            f"""
+            select
+                quality_result_id,
+                pipeline_run_id,
+                dataset_name,
+                layer_name,
+                rule_code,
+                rule_name,
+                severity,
+                status,
+                blocking,
+                partition_key,
+                row_count_evaluated,
+                row_count_failed,
+                failure_ratio,
+                details_json,
+                evaluated_at
+            from ops.data_quality_results
+            {where_clause}
+            order by evaluated_at desc
+            limit :limit
+            """
+        )
+
+        with self.session() as session:
+            rows = session.execute(statement, payload).mappings().all()
+            return [dict(row) for row in rows]
+
+    def check_health(self) -> bool:
+        statement = text("select 1")
+        with self.session() as session:
+            value = session.execute(statement).scalar_one()
+            return value == 1
 
     def mark_pipeline_run_finished(
         self,

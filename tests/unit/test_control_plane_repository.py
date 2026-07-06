@@ -220,6 +220,21 @@ def test_get_latest_pipeline_run_returns_mapping_as_dict() -> None:
     assert result == row
 
 
+def test_list_latest_pipeline_runs_returns_rows_as_dicts() -> None:
+    repository, session = _build_repository_with_session()
+    rows = [{"pipeline_name": "cvm_gold_build", "status": "succeeded"}]
+    result_proxy = MagicMock()
+    result_proxy.mappings.return_value.all.return_value = rows
+    session.execute.return_value = result_proxy
+
+    result = repository.list_latest_pipeline_runs(limit=5, pipeline_name="cvm_gold_build")
+
+    assert result == rows
+    _, payload = session.execute.call_args[0]
+    assert payload["limit"] == 5
+    assert payload["pipeline_name"] == "cvm_gold_build"
+
+
 def test_get_ingestion_state_returns_none_when_missing() -> None:
     repository, session = _build_repository_with_session()
     result_proxy = MagicMock()
@@ -248,6 +263,32 @@ def test_get_source_files_by_urls_returns_mapped_rows() -> None:
     )
 
     assert result == [row]
+
+
+def test_list_latest_quality_results_returns_rows_as_dicts() -> None:
+    repository, session = _build_repository_with_session()
+    rows = [{"dataset_name": "fundos_informe_diario", "status": "passed"}]
+    result_proxy = MagicMock()
+    result_proxy.mappings.return_value.all.return_value = rows
+    session.execute.return_value = result_proxy
+
+    result = repository.list_latest_quality_results(limit=10, dataset_name="fundos_informe_diario")
+
+    assert result == rows
+    _, payload = session.execute.call_args[0]
+    assert payload["limit"] == 10
+    assert payload["dataset_name"] == "fundos_informe_diario"
+
+
+def test_check_health_executes_select_one() -> None:
+    repository, session = _build_repository_with_session()
+    result_proxy = MagicMock()
+    result_proxy.scalar_one.return_value = 1
+    session.execute.return_value = result_proxy
+
+    result = repository.check_health()
+
+    assert result is True
 
 
 def test_mark_pipeline_run_finished_updates_terminal_fields() -> None:
