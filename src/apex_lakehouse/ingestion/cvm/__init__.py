@@ -30,6 +30,18 @@ from apex_lakehouse.ingestion.cvm.raw_ingestion_workflow import (
     CvmRawIngestionWorkflow,
     CvmRawWorkflowResult,
 )
+from apex_lakehouse.ingestion.cvm.silver_models import (
+    SilverBuildRequest,
+    SilverBuildResult,
+    SilverColumnSchema,
+    SilverTransformSummary,
+)
+from apex_lakehouse.ingestion.cvm.silver_service import CvmSilverService
+from apex_lakehouse.ingestion.cvm.silver_transformer import (
+    CvmSilverTransformer,
+    SilverTransformRequest,
+)
+from apex_lakehouse.ingestion.cvm.silver_workflow import CvmSilverBatch, CvmSilverWorkflow
 
 __all__ = [
     "BronzeBuildRequest",
@@ -47,10 +59,19 @@ __all__ = [
     "CvmRawIngestionService",
     "CvmRawIngestionWorkflow",
     "CvmRawWorkflowResult",
+    "CvmSilverBatch",
+    "CvmSilverService",
+    "CvmSilverTransformer",
+    "CvmSilverWorkflow",
     "CvmSourceArtifact",
     "DiscoveryDecision",
     "DownloadRequest",
     "DownloadedFile",
     "RawIngestionRequest",
     "RawIngestionResult",
+    "SilverBuildRequest",
+    "SilverBuildResult",
+    "SilverColumnSchema",
+    "SilverTransformRequest",
+    "SilverTransformSummary",
 ]
